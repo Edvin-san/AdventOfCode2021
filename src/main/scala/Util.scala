@@ -1,4 +1,8 @@
 object Util {
+  implicit class ListOps[A](xs: List[A]) {
+    def frequency: Map[A, Int] = xs.groupBy(identity).view.mapValues(_.size).toMap
+  }
+
   def lowerBound[V <% Ordered[V]](first: BigInt, last: BigInt, value: V, valueOf: BigInt => V): BigInt = {
     // Adjusted from https://en.cppreference.com/w/cpp/algorithm/lower_bound
     var f = first
