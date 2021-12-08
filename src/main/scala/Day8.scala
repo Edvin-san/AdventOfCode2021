@@ -2,37 +2,68 @@ import zio._
 
 object Day8 extends Day[Long, Long] {
   val original: Map[Set[Char], Int] = Map(
-    "abcefg".toSet -> 0,
-    "cf".toSet -> 1,
-    "acdeg".toSet -> 2,
-    "acdfg".toSet -> 3,
-    "bcdf".toSet -> 4,
-    "abdfg".toSet -> 5,
-    "abdefg".toSet -> 6,
-    "acf".toSet -> 7,
-    "abcdefg".toSet -> 8,
-    "abcdfg".toSet -> 9
+    "abcefg".toSet -> 0, // 6
+    "cf".toSet -> 1, // 2
+    "acdeg".toSet -> 2, // 5
+    "acdfg".toSet -> 3, // 5
+    "bcdf".toSet -> 4, // 4
+    "abdfg".toSet -> 5, // 5
+    "abdefg".toSet -> 6, // 6
+    "acf".toSet -> 7, // 3
+    "abcdefg".toSet -> 8, // 7
+    "abcdfg".toSet -> 9 // 6
+  )
+  val originalNumToChars: Map[Int, Set[Char]] = Map(
+    0 -> "abcefg".toSet, // 6
+    1 -> "cf".toSet, // 2
+    2 -> "acdeg".toSet, // 5
+    3 -> "acdfg".toSet, // 5
+    4 -> "bcdf".toSet, // 4
+    5 -> "abdfg".toSet, // 5
+    6 -> "abdefg".toSet, // 6
+    7 -> "acf".toSet, // 3
+    8 -> "abcdefg".toSet, // 7
+    9 -> "abcdfg".toSet // 6
   )
 
-  val baseConstraints = Map(
-    'a' -> "abcdefg".toSet,
-    'b' -> "abcdefg".toSet,
-    'c' -> "abcdefg".toSet,
-    'd' -> "abcdefg".toSet,
-    'e' -> "abcdefg".toSet,
-    'f' -> "abcdefg".toSet,
-    'g' -> "abcdefg".toSet
-  )
+  // Which numbers are part of other numbers, e.g. numParts(0) == Set(1, 7)
+  val numParts: Map[Int, Set[Int]] = originalNumToChars.map {
+    case (num, chars) => num -> originalNumToChars.filter(_._2.subsetOf(chars)).keySet
+  }
 
-  def reduceConstraints(constraints: Map[Char, Set[Char]], observations: List[String]): Map[Char, Set[Char]] = observations match {
+  // Size | Possible values
+  //   2  | 1 "cf"
+  //   3  | 7 "acf"
+  //   4  | 4 "bcdf"
+  //   5  | 2 "acdeg", 3 "acdfg", 5 "abdfg"
+  //   6  | 0 "abcefg", 6 "abdefg", 6 "abcdfg"
+  //   7  | 8 "abcdefg"
+
+//  val baseConstraints = Map(
+//    'a' -> "abcdefg".toSet,
+//    'b' -> "abcdefg".toSet,
+//    'c' -> "abcdefg".toSet,
+//    'd' -> "abcdefg".toSet,
+//    'e' -> "abcdefg".toSet,
+//    'f' -> "abcdefg".toSet,
+//    'g' -> "abcdefg".toSet
+//  )
+
+  def reduceConstraints(constraints: Map[Int, Set[Char]], observations: List[String]): Map[Int, Set[Char]] = observations match {
     case Nil => constraints
     case observation :: tail =>
-      val observationUnion = observation.map(constraints).foldLeft(Set.empty[Char])(_ union _)
-      val possibleNums = original.keySet.filter { chars =>
-        chars.size == observation.length &&
-          chars.toSet.subsetOf(observationUnion)
-      }.flatten
-      val reduced = constraints ++ observation.map(c => c -> constraints(c).intersect(possibleNums)).toMap
+      val obsSet = observation.toSet
+      val possibleNums = originalNumToChars.map { case (num, chars) =>
+        val correctSize = chars.size == observation.length
+        lazy val doesNotViolateAlreadyDeduced = numParts(num).forall{ i =>
+          constraints.getOrElse(i, Set()).subsetOf(obsSet)
+        }
+        Option.when(correctSize && doesNotViolateAlreadyDeduced)(num)
+      }.toList.flatten
+      val reduced =
+        if (possibleNums.size == 1) constraints + (possibleNums.head -> obsSet)
+        else constraints
+
       reduceConstraints(reduced, tail)
   }
 
@@ -54,22 +85,38 @@ object Day8 extends Day[Long, Long] {
 
   def part1(in: String) = Task.effect {
     val lines = in.split("\n")
-    lines.map(_.split("\\|").last.trim.split(" ").count(x => List(2, 4, 3, 7).contains(x.length) )).sum
+    lines.map(_.split("\\|").last.trim.split(" ").count(x => List(2, 4, 3, 7).contains(x.length))).sum
   }
+
+//  def part2(in: String) = Task.effect {
+//    val reduced = reduceConstraints(baseConstraints, List("cagedb"))
+//    println(reduced.toList.sortBy(_._1).map(t => s"${t._1} -> ${t._2.toList.sorted.mkString}").mkString("\n"))
+//    ???
+//  }
 
   def part2(in: String) = Task.effect {
     val input = parseInput(in)
     val x = input.map { line =>
-//      val reduced = reduceConstraints(baseConstraints, line.observations ++ line.output)
+      //      val reduced = reduceConstraints(baseConstraints, line.observations ++ line.output)
+      val completelyReduced = LazyList
+        .iterate(Map.empty[Int, Set[Char]])(reduceConstraints(_, line.observations))
+        .grouped(2)
+        .find(it => it.head == it.last)
+        .map(_.head)
+        .get
 
-//      if (reduced.exists(_._2.size != 1)) println(s"Not clear! $reduced")
-      val maybeMapping = bruteForce("abcdefg".toList, line.observations ++ line.output, Map())
-      maybeMapping match {
-        case Some(mapping) => line.output.map(s => original(s.map(c => mapping(c)).toSet)).mkString.toInt
-        case None =>
-          println(s"Couldn't find viable solution for $line")
-          0
-      }
+      val inverted = completelyReduced.map(t => t._2 -> t._1)
+
+      if (completelyReduced.size != 10) println(s"Not clear! $completelyReduced")
+      line.output.map(s => inverted(s.toSet)).mkString.toInt
+
+      //      val maybeMapping = bruteForce("abcdefg".toList, line.observations, Map())
+      //      maybeMapping match {
+      //        case Some(mapping) => line.output.map(s => original(s.map(c => mapping(c)).toSet)).mkString.toInt
+      //        case None =>
+      //          println(s"Couldn't find viable solution for $line")
+      //          0
+      //      }
     }
     x.sum
   }
