@@ -1,6 +1,14 @@
 object Util {
+  implicit class MapOps[K, V](m: Map[K, V]) {
+    def mapValuesWith[A](f: V => A): Map[K, A] = m.view.mapValues(f).toMap
+  }
+
   implicit class ListOps[A](xs: List[A]) {
-    def frequency: Map[A, Int] = xs.groupBy(identity).view.mapValues(_.size).toMap
+    def frequency: Map[A, Int] = xs.groupBy(identity).mapValuesWith(_.size)
+  }
+
+  implicit class LazyListOps[A](lzy: LazyList[A]) {
+    def getFirstRepeated: A = lzy.grouped(2).find(it => it.head == it.last).get.head
   }
 
   def lowerBound[V <% Ordered[V]](first: BigInt, last: BigInt, value: V, valueOf: BigInt => V): BigInt = {

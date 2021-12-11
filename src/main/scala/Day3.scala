@@ -1,7 +1,8 @@
+import Util.MapOps
 import zio._
 
 object Day3 extends Day[Int, Int] {
-  def elemCount[A](xs: List[A]): Map[A, Int] = xs.groupBy(identity).view.mapValues(_.size).toMap
+  def elemCount[A](xs: List[A]): Map[A, Int] = xs.groupBy(identity).mapValuesWith(_.size)
 
   def part1(in: String) = Task.effect {
     val bnums = in.split("\n").toList

@@ -30,7 +30,7 @@ object Day9 extends Day[Long, Long] {
       basin #:: basinExploration(basin ++ newPoints)
     }
 
-    hmap.lowPoints.height.keySet.toList.map(p => basinExploration(Set(p)).grouped(2).find(it => it.head == it.last).get.head)
+    hmap.lowPoints.height.keySet.toList.map(p => basinExploration(Set(p)).getFirstRepeated)
   }
 
   def parseInput(s: String): HeightMap = {

@@ -13,12 +13,12 @@ object Day6 extends Day[BigInt, BigInt] {
           List((timer - 1) -> population)
         else
           List(newBornTimer -> population, postBirthTimer -> population)
-      }.groupBy(_._1).view.mapValues(_.map(_._2).sum).toMap
+      }.groupBy(_._1).mapValuesWith(_.map(_._2).sum)
       initialState #:: simulatePopulationEvolution(PopulationState(nextState))
     }
   }
 
-  def parseInput(s: String): PopulationState = PopulationState(s.split(",").map(_.toInt).toList.frequency.view.mapValues(BigInt(_)).toMap)
+  def parseInput(s: String): PopulationState = PopulationState(s.split(",").map(_.toInt).toList.frequency.mapValuesWith(BigInt(_)))
 
   def part1(in: String) = Task.effect {
     val simulator = Simulator(newBornTimer = 8, postBirthTimer = 6)
