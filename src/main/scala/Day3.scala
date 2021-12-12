@@ -1,5 +1,7 @@
 import Util.MapOps
 import zio._
+import DayCase.{Puzzle, Test}
+import Input.{InputString, ResourceInput}
 
 object Day3 extends Day[Int, Int] {
   def elemCount[A](xs: List[A]): Map[A, Int] = xs.groupBy(identity).mapValuesWith(_.size)
@@ -34,8 +36,8 @@ object Day3 extends Day[Int, Int] {
     Integer.parseInt(oxygenNumber, 2) * Integer.parseInt(co2scrubberNumber, 2)
   }
 
-  val inputs = Map(
-    "example" -> InputString(
+  val cases = List(
+    Test("example", InputString(
       """00100
         |11110
         |10110
@@ -47,7 +49,7 @@ object Day3 extends Day[Int, Int] {
         |10000
         |11001
         |00010
-        |01010""".stripMargin),
-    "puzzle" -> ResourceInput("day3puzzle.txt")
+        |01010""".stripMargin)),
+    Puzzle(ResourceInput("day3puzzle.txt"))
   )
 }

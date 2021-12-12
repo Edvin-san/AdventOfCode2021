@@ -1,4 +1,6 @@
 import Day2.CommandType.{Down, Forward, Up}
+import DayCase.{Puzzle, Test}
+import Input.{InputString, ResourceInput}
 import zio._
 
 object Day2 extends Day[Int, Int] {
@@ -6,9 +8,7 @@ object Day2 extends Day[Int, Int] {
 
   object CommandType {
     case object Forward extends CommandType
-
     case object Up extends CommandType
-
     case object Down extends CommandType
   }
 
@@ -30,6 +30,7 @@ object Day2 extends Day[Int, Int] {
   }
 
   case class P1State(hpos: Int, depth: Int)
+
   def part1(in: String) = Task.effect {
     val commands = parseInput(in)
     val finalState = simulate[P1State](
@@ -45,6 +46,7 @@ object Day2 extends Day[Int, Int] {
   }
 
   case class P2State(hpos: Int, depth: Int, aim: Int)
+
   def part2(in: String) = Task.effect {
     val commands = parseInput(in)
     val finalState = simulate[P2State](
@@ -59,14 +61,14 @@ object Day2 extends Day[Int, Int] {
     finalState.hpos * finalState.depth
   }
 
-  val inputs = Map(
-    "example" -> InputString(
+  val cases = List(
+    Test("example", InputString(
       """forward 5
         |down 5
         |forward 8
         |up 3
         |down 8
-        |forward 2""".stripMargin),
-    "puzzle" -> ResourceInput("day2puzzle.txt")
+        |forward 2""".stripMargin)),
+    Puzzle(ResourceInput("day2puzzle.txt"))
   )
 }

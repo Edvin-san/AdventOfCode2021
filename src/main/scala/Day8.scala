@@ -1,3 +1,5 @@
+import DayCase.{Puzzle, Test}
+import Input.{InputString, ResourceInput}
 import zio._
 
 object Day8 extends Day[Long, Long] {
@@ -54,15 +56,15 @@ object Day8 extends Day[Long, Long] {
 
   def part1(in: String) = Task.effect {
     val lines = in.split("\n")
-    lines.map(_.split("\\|").last.trim.split(" ").count(x => List(2, 4, 3, 7).contains(x.length) )).sum
+    lines.map(_.split("\\|").last.trim.split(" ").count(x => List(2, 4, 3, 7).contains(x.length))).sum
   }
 
   def part2(in: String) = Task.effect {
     val input = parseInput(in)
     val x = input.map { line =>
-//      val reduced = reduceConstraints(baseConstraints, line.observations ++ line.output)
+      //      val reduced = reduceConstraints(baseConstraints, line.observations ++ line.output)
 
-//      if (reduced.exists(_._2.size != 1)) println(s"Not clear! $reduced")
+      //      if (reduced.exists(_._2.size != 1)) println(s"Not clear! $reduced")
       val maybeMapping = bruteForce("abcdefg".toList, line.observations ++ line.output, Map())
       maybeMapping match {
         case Some(mapping) => line.output.map(s => original(s.map(c => mapping(c)).toSet)).mkString.toInt
@@ -74,8 +76,8 @@ object Day8 extends Day[Long, Long] {
     x.sum
   }
 
-  val inputs = Map(
-    "example" -> InputString("acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab | cdfeb fcadb cdfeb cdbaf"),
-    "puzzle" -> ResourceInput("day8puzzle.txt")
+  val cases = List(
+    Test("example", InputString("acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab | cdfeb fcadb cdfeb cdbaf")),
+    Puzzle(ResourceInput("day8puzzle.txt"))
   )
 }

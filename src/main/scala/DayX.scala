@@ -1,3 +1,5 @@
+import DayCase.{Puzzle, Test}
+import Input.{InputString, ResourceInput}
 import zio._
 
 object DayX extends Day[Long, Long] {
@@ -9,8 +11,8 @@ object DayX extends Day[Long, Long] {
     ???
   }
 
-  val inputs = Map(
-    "example" -> InputString(""""""),
-    "puzzle" -> ResourceInput("dayXpuzzle.txt")
+  val cases = List(
+    Test("example", InputString("""""")),
+    Puzzle(ResourceInput("dayXpuzzle.txt"))
   )
 }

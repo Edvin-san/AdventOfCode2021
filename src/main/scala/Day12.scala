@@ -1,9 +1,12 @@
+import DayCase.{Puzzle, Test}
+import Input.InputString
 import Util.MapOps
 import zio._
 
 object Day12 extends Day[Long, Long] {
   case class Cave(name: String) {
     lazy val isBig: Boolean = name.toUpperCase == name
+
     def isSmall: Boolean = !isBig
   }
 
@@ -61,16 +64,16 @@ object Day12 extends Day[Long, Long] {
     finder.pathsToEndAllowingOneSmallRevisit(Cave.start, Set.empty)
   }
 
-  val inputs = Map(
-    "example1" -> InputString(
+  val cases = List(
+    Test("example1", InputString(
       """start-A
         |start-b
         |A-c
         |A-b
         |b-d
         |A-end
-        |b-end""".stripMargin),
-    "example2" -> InputString(
+        |b-end""".stripMargin), p1answer = 10, p2answer = 36),
+    Test("example2", InputString(
       """dc-end
         |HN-start
         |start-kj
@@ -80,8 +83,8 @@ object Day12 extends Day[Long, Long] {
         |HN-end
         |kj-sa
         |kj-HN
-        |kj-dc""".stripMargin),
-    "example3" -> InputString(
+        |kj-dc""".stripMargin), p1answer = 19, p2answer = 103),
+    Test("example3", InputString(
       """fs-end
         |he-DX
         |fs-he
@@ -99,8 +102,8 @@ object Day12 extends Day[Long, Long] {
         |he-WI
         |zg-he
         |pj-fs
-        |start-RW""".stripMargin),
-    "puzzle" -> InputString(
+        |start-RW""".stripMargin), p1answer = 226, p2answer = 3509),
+    Puzzle(InputString(
       """ln-nr
         |ln-wy
         |fl-XI
@@ -122,6 +125,6 @@ object Day12 extends Day[Long, Long] {
         |ln-YN
         |end-wy
         |qc-nr
-        |end-nr""".stripMargin)
+        |end-nr""".stripMargin), p1answer = 4773, p2answer = 116985)
   )
 }

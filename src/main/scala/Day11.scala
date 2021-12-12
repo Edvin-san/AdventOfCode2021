@@ -1,3 +1,5 @@
+import DayCase.{Puzzle, Test}
+import Input.InputString
 import Util.Vector.Pos
 import zio._
 
@@ -48,8 +50,8 @@ object Day11 extends Day[Long, Long] {
     seq.zipWithIndex.collectFirst { case (energyMap, idx) if energyMap.recentFlashes == 100 => idx }.get
   }
 
-  val inputs = Map(
-    "example" -> InputString(
+  val cases = List(
+    Test("example", InputString(
       """5483143223
         |2745854711
         |5264556173
@@ -59,8 +61,8 @@ object Day11 extends Day[Long, Long] {
         |2176841721
         |6882881134
         |4846848554
-        |5283751526""".stripMargin),
-    "puzzle" -> InputString(
+        |5283751526""".stripMargin)),
+    Puzzle(InputString(
       """6111821767
         |1763611615
         |3512683131
@@ -70,6 +72,6 @@ object Day11 extends Day[Long, Long] {
         |2222482823
         |5471356782
         |3738671287
-        |8675226574""".stripMargin)
+        |8675226574""".stripMargin))
   )
 }

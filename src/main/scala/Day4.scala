@@ -1,5 +1,6 @@
 import zio._
-
+import DayCase.{Puzzle, Test}
+import Input.{InputString, ResourceInput}
 object Day4 extends Day[Int, Int] {
   case class BingoBoard(rows: List[List[Int]]) {
     def allNums: List[Int] = rows.flatten
@@ -41,8 +42,8 @@ object Day4 extends Day[Int, Int] {
     boards.flatMap(board => BingoBoard.winTimeAndScore(board, numbers)).maxBy(_.timeToWin).score
   }
 
-  val inputs = Map(
-    "example" -> InputString("""7,4,9,5,11,17,23,2,0,14,21,24,10,16,13,6,15,25,12,22,18,20,8,19,3,26,1
+  val cases = List(
+    Test("example", InputString("""7,4,9,5,11,17,23,2,0,14,21,24,10,16,13,6,15,25,12,22,18,20,8,19,3,26,1
                                |
                                |22 13 17 11  0
                                | 8  2 23  4 24
@@ -60,7 +61,7 @@ object Day4 extends Day[Int, Int] {
                                |10 16 15  9 19
                                |18  8 23 26 20
                                |22 11 13  6  5
-                               | 2  0 12  3  7""".stripMargin),
-    "puzzle" -> ResourceInput("day4puzzle.txt")
+                               | 2  0 12  3  7""".stripMargin)),
+    Puzzle(ResourceInput("day4puzzle.txt"))
   )
 }

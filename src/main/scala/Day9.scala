@@ -1,3 +1,5 @@
+import DayCase.{Puzzle, Test}
+import Input.{InputString, ResourceInput}
 import Util.Vector
 import Util.Vector.Dir._
 import Util.Vector.Pos
@@ -53,13 +55,13 @@ object Day9 extends Day[Long, Long] {
     basins(hmap).map(_.size).sorted.reverse.take(3).product
   }
 
-  val inputs = Map(
-    "example" -> InputString(
+  val cases = List(
+    Test("example", InputString(
       """2199943210
         |3987894921
         |9856789892
         |8767896789
-        |9899965678""".stripMargin),
-    "puzzle" -> ResourceInput("day9puzzle.txt")
+        |9899965678""".stripMargin)),
+    Puzzle(ResourceInput("day9puzzle.txt"))
   )
 }

@@ -1,10 +1,13 @@
 import Day10.LineStatus.{Corrupted, Incomplete, Ok}
+import DayCase.{Puzzle, Test}
+import Input.{InputString, ResourceInput}
 import zio._
 
 object Day10 extends Day[Long, Long] {
   val matching: Map[Char, Char] = "()[]{}<>".grouped(2).flatMap(p => List(p(0) -> p(1), p(1) -> p(0))).toMap
 
   def isOpening(c: Char): Boolean = "([{<".contains(c)
+
   def isClosing(c: Char): Boolean = ")]}>".contains(c)
 
   val score1 = Map(
@@ -26,15 +29,18 @@ object Day10 extends Day[Long, Long] {
 
   object LineStatus {
     case object Ok extends LineStatus
+
     case class Incomplete(opens: List[Char]) extends LineStatus {
       lazy val score: Long = {
         def helper(remainingOpens: List[Char], scoreSoFar: Long): Long = remainingOpens match {
           case head :: tail => helper(tail, scoreSoFar * 5 + score2(matching(head)))
           case Nil => scoreSoFar
         }
+
         helper(opens, 0)
       }
     }
+
     case class Corrupted(opens: List[Char], idxInvalid: Int, expected: Option[Char], found: Char) extends LineStatus
   }
 
@@ -51,6 +57,7 @@ object Day10 extends Day[Long, Long] {
             else Corrupted(opens, idx, Some(matching(openingChar)), currentChar)
         }
     }
+
     helper(Nil, line.toList, 0)
   }
 
@@ -78,17 +85,18 @@ object Day10 extends Day[Long, Long] {
     scores.sorted.apply(size / 2)
   }
 
-  val inputs = Map(
-    "example" -> InputString("""[({(<(())[]>[[{[]{<()<>>
-                               |[(()[<>])]({[<{<<[]>>(
-                               |{([(<{}[<>[]}>{[]{[(<()>
-                               |(((({<>}<{<{<>}{[]{[]{}
-                               |[[<[([]))<([[{}[[()]]]
-                               |[{[{({}]{}}([{[{{{}}([]
-                               |{<[[]]>}<{[{[{[]{()[[[]
-                               |[<(<(<(<{}))><([]([]()
-                               |<{([([[(<>()){}]>(<<{{
-                               |<{([{{}}[<[[[<>{}]]]>[]]""".stripMargin),
-    "puzzle" -> ResourceInput("day10puzzle.txt")
+  val cases = List(
+    Test("example", InputString(
+      """[({(<(())[]>[[{[]{<()<>>
+        |[(()[<>])]({[<{<<[]>>(
+        |{([(<{}[<>[]}>{[]{[(<()>
+        |(((({<>}<{<{<>}{[]{[]{}
+        |[[<[([]))<([[{}[[()]]]
+        |[{[{({}]{}}([{[{{{}}([]
+        |{<[[]]>}<{[{[{[]{()[[[]
+        |[<(<(<(<{}))><([]([]()
+        |<{([([[(<>()){}]>(<<{{
+        |<{([{{}}[<[[[<>{}]]]>[]]""".stripMargin)),
+    Puzzle(ResourceInput("day10puzzle.txt"))
   )
 }

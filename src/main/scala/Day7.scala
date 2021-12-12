@@ -1,3 +1,5 @@
+import DayCase.{Puzzle, Test}
+import Input.{InputString, ResourceInput}
 import zio._
 
 object Day7 extends Day[Long, Long] {
@@ -11,7 +13,7 @@ object Day7 extends Day[Long, Long] {
     alt.minBy(_._2)._2
   }
 
-  def arithmeticSum(n: Int): Int = n*(n + 1)/2
+  def arithmeticSum(n: Int): Int = n * (n + 1) / 2
 
   def part2(in: String) = Task.effect {
     val crabPositions = parseInput(in)
@@ -21,8 +23,8 @@ object Day7 extends Day[Long, Long] {
     alt.minBy(_._2)._2
   }
 
-  val inputs = Map(
-    "example" -> InputString("16,1,2,0,4,2,7,1,2,14"),
-    "puzzle" -> ResourceInput("day7puzzle.txt")
+  val cases = List(
+    Test("example", InputString("16,1,2,0,4,2,7,1,2,14")),
+    Puzzle(ResourceInput("day7puzzle.txt"))
   )
 }

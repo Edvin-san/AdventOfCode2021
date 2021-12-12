@@ -1,7 +1,8 @@
 import Day5.LineSegment.PosOps
 import Util.Vector.{Dir, Pos}
 import zio._
-
+import DayCase.{Puzzle, Test}
+import Input.{InputString, ResourceInput}
 object Day5 extends Day[Long, Long] {
   case class LineSegment(a: Pos, b: Pos) {
     lazy val positions: Set[Pos] = {
@@ -44,8 +45,8 @@ object Day5 extends Day[Long, Long] {
     findIntersectingPoints(parseInput(in)).size
   }
 
-  val inputs = Map(
-    "example" -> InputString(
+  val cases = List(
+    Test("example", InputString(
       """0,9 -> 5,9
         |8,0 -> 0,8
         |9,4 -> 3,4
@@ -55,7 +56,7 @@ object Day5 extends Day[Long, Long] {
         |0,9 -> 2,9
         |3,4 -> 1,4
         |0,0 -> 8,8
-        |5,5 -> 8,2""".stripMargin),
-    "puzzle" -> ResourceInput("day5puzzle.txt")
+        |5,5 -> 8,2""".stripMargin)),
+    Puzzle(ResourceInput("day5puzzle.txt"))
   )
 }
