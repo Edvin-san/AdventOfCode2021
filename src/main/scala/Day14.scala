@@ -12,12 +12,13 @@ object Day14 extends Day[BigInt, BigInt] {
     def stepSequence(start: List[Char]): LazyList[List[Char]] = start #:: stepSequence(oneStep(start))
   }
 
-  case class Frequency[A](occurrences: Map[A, BigInt]) {
+  case class Frequency[A](occurrences: Map[A, BigInt]) extends AnyVal {
     def ++(other: Frequency[A]): Frequency[A] = Frequency(
-      (occurrences.keySet ++ other.occurrences.keySet)
-        .map(c => c -> (occurrences.getOrElse(c, BigInt(0)) + other.occurrences.getOrElse(c, BigInt(0)))).toMap)
+      (occurrences.toList ++ other.occurrences.toList).groupMapReduce(_._1)(_._2)(_ + _)
+    )
 
     def decremented(c: A): Frequency[A] = Frequency(occurrences.updatedWith(c)(_.map(_ - 1)))
+
     def decremented(c: A, amount: BigInt): Frequency[A] = Frequency(occurrences.updatedWith(c)(_.map(_ - amount)))
 
     def max: BigInt = occurrences.values.max
@@ -27,7 +28,9 @@ object Day14 extends Day[BigInt, BigInt] {
 
   object Frequency {
     def of[A](c: A, x: Int): Frequency[A] = Frequency(Map(c -> BigInt(x)))
+
     def ofBig[A](c: A, x: BigInt): Frequency[A] = Frequency(Map(c -> x))
+
     type CharFrequency = Frequency[Char]
   }
 
@@ -101,40 +104,52 @@ object Day14 extends Day[BigInt, BigInt] {
   /**
    * Didn't come up with this one myself. Idea is to keep track of pair-occurrences.
    * E.g. we know there are X occurrences of ab. ab -> c, so we'll increase the occurrences of ac and cb by count(ab).
-   * Need to figure out how to wrap it all together.
+   *
+   * After looking at Vasyl's solution I understand how to wrap it together.
+   * Each character will be counted twice, once in the beginning and once in the end of a pair.
+   * Need to add one to the last character tough, because it wasn't counted in the beginning of a pair.
    */
   case class PairWisePolymerFrequencyGrower(rules: Map[(Char, Char), Char]) {
     def frequencyAfterSteps(start: List[Char], steps: Int): CharFrequency = {
       assert(steps >= 0)
       assert(start.size >= 2)
 
-      var freqs: Frequency[(Char, Char)] = start.sliding(2).map(cs => Frequency.of(cs.head -> cs.last, 1)).reduce(_ ++ _)
-
-      var remSteps = steps
-      while (remSteps > 0) {
-        val newFreqs = rules.map { case ((a, b), c) =>
+      val pairFreqs: Frequency[(Char, Char)] = start.sliding(2).map(cs => Frequency.of(cs.head -> cs.last, 1)).reduce(_ ++ _)
+      val finalPairFreqs = (1 to steps).foldLeft(pairFreqs){
+        case (freqs, _) => rules.map { case ((a, b), c) =>
           val abOcc = freqs.occurrences.getOrElse(a -> b, BigInt(0))
-          (Frequency.ofBig(a -> c, abOcc) ++ Frequency.ofBig(b -> c, abOcc)).decremented(a -> b, abOcc)
+          Frequency.ofBig(a -> c, abOcc) ++ Frequency.ofBig(c -> b, abOcc)
         }.reduce(_ ++ _)
-        freqs = Frequency(freqs.occurrences.map { case ((a, b), c) => (a -> b) -> newFreqs.occurrences.getOrElse(a -> b, c) })
-        remSteps = remSteps - 1
       }
-      // WIP
+      // Extract character frequencies
+      // Each character is counted twice for each pair, so for each pair count only the time it is the first char.
+      // Add 1 to last char in original string because it is never first in a pair
+      Frequency(finalPairFreqs.occurrences.groupMapReduce(_._1._1)(_._2)(_ + _)) ++ Frequency.of(start.last, 1)
+    }
+  }
 
-      /*
-      Template:     NNCB
-      NN 1, NC 1, CB 1
-      After step 1: NCNBCHB
-      NC 1, CN 1, NB 1, BC 1, CH 1, HB 1
-      After step 2: NBCCNBBBCBHCB
-      After step 3: NBBBCNCCNBBNBNBBCHBHHBCHB
-       */
+  /**
+   * Adapted my collegue Vasyl Zhurba's solution.
+   */
+  case class VasylZhurbaEdition(rules: Map[(Char, Char), Char]) {
+    def frequencyAfterSteps(start: List[Char], steps: Int): CharFrequency = {
+      assert(steps >= 0)
+      assert(start.size >= 2)
 
-//      val freqs = start.sliding(2).map(cs => dp(cs.head -> cs.last)).toList
-//      val combinedFreqs = freqs.reduce(_ ++ _)
-//      start.drop(1).init.foldLeft(combinedFreqs)(_ decremented _)
+      val templateMap: Map[(Char, Char), BigInt] = start.sliding(2).toList.map { case List(x, y) => x -> y -> BigInt(1) }.groupMapReduce(_._1)(_._2)(_ + _)
 
-      ???
+      val rr: Map[(Char, Char), BigInt] = (1 to steps).foldLeft(templateMap) {
+        case (map, _) =>
+          map
+            .toList
+            .flatMap {
+              // Note that we assume rules is defined for all pairs, which seems to be the case in input
+              case ((x, y), count) => List(x -> rules(x -> y) -> count, rules(x -> y) -> y -> count)
+            }.groupMapReduce(_._1)(_._2)(_ + _)
+      }
+
+      val grouped1 = (rr + (start.last -> '_' -> BigInt(1))).groupMapReduce(_._1._1)(_._2)(_ + _)
+      Frequency(grouped1)
     }
   }
 
