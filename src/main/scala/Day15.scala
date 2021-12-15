@@ -1,10 +1,9 @@
 import DayCase.{Puzzle, Test}
+import GraphUtil.Edgy
 import Input.{InputString, ResourceInput}
 import Util.Vector.Dir._
 import Util.Vector.Pos
 import zio._
-
-import scala.collection.mutable
 
 object Day15 extends Day[Long, Long] {
   def neighborPos1(p: Pos): List[Pos] = List(
@@ -42,37 +41,12 @@ object Day15 extends Day[Long, Long] {
   def shortestPath(graph: Graph, from: Vertex, to: Vertex): Long = {
     val neighbors: Map[Vertex, List[Edge]] = graph.edges.toList.groupBy(_.from)
 
-    var shortestEdgeTo: Map[Vertex, Edge] = Map()
-    implicit val ord: Ordering[Edge] = (x: Edge, y: Edge) => y.cost - x.cost
-    val queue: mutable.PriorityQueue[Edge] = scala.collection.mutable.PriorityQueue[Edge](neighbors(from): _*)
+    implicit val e: Edgy[Edge, Vertex] = new Edgy[Edge, Vertex] {
+      override def from(e: Edge): Vertex = e.from
 
-    var found = false
-    while (queue.nonEmpty && !found) {
-      val e = queue.dequeue()
-      if (!shortestEdgeTo.contains(e.to)) {
-        // Found shortest path to e.to
-        shortestEdgeTo = shortestEdgeTo + (e.to -> e)
-        if (e.to == to) {
-          found = true
-        } else {
-          queue.addAll(neighbors(e.to))
-        }
-      }
+      override def to(e: Edge): Vertex = e.to
     }
-
-    if (!found) throw new NoSuchElementException("Could not find path")
-
-    // Extract path
-    def findPath(end: Vertex): LazyList[Edge] =
-      if (end == from) LazyList.empty
-      else {
-        val e = shortestEdgeTo(end)
-        e #:: findPath(e.from)
-      }
-
-    val path = findPath(to)
-    print(path.reverse.toList)
-    path.map(_.cost).sum
+    GraphUtil.shortestPath[Vertex, Edge, Int](from, to, neighbors.apply, _.cost).get._2
   }
 
   def part1(in: String) = Task.effect {
@@ -83,9 +57,25 @@ object Day15 extends Day[Long, Long] {
     shortest
   }
 
-  def part2(in: String) = Task.effect {
-    ???
+  // For part 2 needed to expand graph as I was only given 1 out of 25 tiles.
+  def expandInput(s: String): String = {
+    val lines = s.split("\n")
+    val xLen = lines.head.length
+    val yLen = lines.size
+    val bigLines = for {
+      y <- 0 until yLen * 5
+      line = (for {
+        x <- 0 until xLen * 5
+        xmul = x / xLen
+        ymul = y / yLen
+        orig = lines(y % yLen)(x % xLen).asDigit
+        modded = (orig + ymul + xmul) % 10
+      } yield if (modded < orig) modded + 1 else modded).mkString
+    } yield line
+    bigLines.mkString("\n")
   }
+
+  def part2(in: String) = part1(expandInput(in))
 
   val cases = List(
     Test("example", InputString(
@@ -98,7 +88,7 @@ object Day15 extends Day[Long, Long] {
         |1359912421
         |3125421639
         |1293138521
-        |2311944581""".stripMargin), p1answer = 40),
-    Puzzle(ResourceInput("day15puzzle.txt"))
+        |2311944581""".stripMargin), p1answer = 40, p2answer = 315),
+    Puzzle(ResourceInput("day15puzzle.txt"), p1answer = 462, p2answer = 2846)
   )
 }
