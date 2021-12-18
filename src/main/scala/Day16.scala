@@ -22,24 +22,24 @@ object Day16 extends Day[Long, BigInt] {
     case class Operator(version: VersionNumber, typeId: TypeId, operands: List[Packet]) extends Packet
   }
 
-  val versionNumberParser: Parser[VersionNumber] = parseIntOfLen(3).map(VersionNumber.apply)
-  val typeIdParser: Parser[TypeId] = parseIntOfLen(3).map(TypeId.apply)
+  val versionNumberParser: Parser[VersionNumber] = parseIntOfLen(3, 2).map(VersionNumber.apply)
+  val typeIdParser: Parser[TypeId] = parseIntOfLen(3, 2).map(TypeId.apply)
 
   def literalPacketParser(versionNumber: VersionNumber): Parser[Packet.Literal] = for {
-    bytes <- listOf(parseChar('1') *> parseString(4))
-    lastByte <- parseChar('0') *> parseString(4)
-    number <- Parser.succeed(bytes.mkString + lastByte).feedInto(parseBigInt)
+    bytes <- listOf(parseChar('1') *> parseStringOfLen(4))
+    lastByte <- parseChar('0') *> parseStringOfLen(4)
+    number <- Parser.succeed(bytes.mkString + lastByte).feedInto(parseBigInt(2))
   } yield Packet.Literal(versionNumber, number)
 
   def operatorPacketParser(version: VersionNumber, typeId: TypeId): Parser[Packet.Operator] = for {
-    lengthTypeId <- parseIntOfLen(1)
+    lengthTypeId <- parseIntOfLen(1, 2)
     subpackets <- lengthTypeId match {
       case 0 => for {
-        bitLen <- parseIntOfLen(15)
-        sps <- parseString(bitLen).feedInto(atLeast(1)(packetParser))
+        bitLen <- parseIntOfLen(15, 2)
+        sps <- parseStringOfLen(bitLen).feedInto(atLeast(1)(packetParser))
       } yield sps
       case 1 => for {
-        numSubpackets <- parseIntOfLen(11)
+        numSubpackets <- parseIntOfLen(11, 2)
         sps <- exactly(numSubpackets)(packetParser)
       } yield sps
     }
