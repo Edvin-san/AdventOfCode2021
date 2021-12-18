@@ -1,11 +1,11 @@
 import DayCase.{Puzzle, Test}
 import Input.{InputString, ResourceInput}
+import Parser._
 import zio._
-
-import scala.util.Try
 
 object Day16 extends Day[Long, BigInt] {
   case class VersionNumber(value: Int) extends AnyVal
+
   case class TypeId(value: Int) extends AnyVal
 
   object TypeId {
@@ -18,95 +18,46 @@ object Day16 extends Day[Long, BigInt] {
 
   object Packet {
     case class Literal(version: VersionNumber, number: BigInt) extends Packet
+
     case class Operator(version: VersionNumber, typeId: TypeId, operands: List[Packet]) extends Packet
   }
 
-  trait Parser[+A] { self =>
-    def parse(s: String): Option[(A, String)]
+  val versionNumberParser: Parser[VersionNumber] = parseIntOfLen(3).map(VersionNumber.apply)
+  val typeIdParser: Parser[TypeId] = parseIntOfLen(3).map(TypeId.apply)
 
-    def flatMap[B](f: A => Parser[B]): Parser[B] = (s: String) => self.parse(s) match {
-      case Some((a, remainder)) =>
-        f(a).parse(remainder)
-      case None => None
+  def literalPacketParser(versionNumber: VersionNumber): Parser[Packet.Literal] = for {
+    bytes <- listOf(parseChar('1') *> parseString(4))
+    lastByte <- parseChar('0') *> parseString(4)
+    number <- Parser.succeed(bytes.mkString + lastByte).feedInto(parseBigInt)
+  } yield Packet.Literal(versionNumber, number)
+
+  def operatorPacketParser(version: VersionNumber, typeId: TypeId): Parser[Packet.Operator] = for {
+    lengthTypeId <- parseIntOfLen(1)
+    subpackets <- lengthTypeId match {
+      case 0 => for {
+        bitLen <- parseIntOfLen(15)
+        sps <- parseString(bitLen).feedInto(atLeast(1)(packetParser))
+      } yield sps
+      case 1 => for {
+        numSubpackets <- parseIntOfLen(11)
+        sps <- exactly(numSubpackets)(packetParser)
+      } yield sps
     }
+  } yield Packet.Operator(version, typeId, subpackets)
 
-    def map[B](f: A => B): Parser[B] = flatMap(a => Parser.succeed(f(a)))
-
-    def withFilter(f: A => Boolean): Parser[A] = (s: String) => self.parse(s) match {
-      case Some((a, remainder)) => Option.when(f(a))(a -> remainder)
-      case None => None
-    }
-
-    def feedInto[B](p: Parser[B])(implicit ev: A <:< String): Parser[B] = (s: String) => self.parse(s).flatMap {
-      case (a, remainder) => p.parse(a).map { case (b, _) => b -> remainder }
-    }
-
-    def *>[B](other: Parser[B]): Parser[B] = flatMap(_ => other)
-  }
-
-  object Parser {
-    def succeed[A](a: A): Parser[A] = (s: String) => Some(a -> s)
-
-    def multiple[A](min: Int, max: Option[Int])(p: Parser[A]): Parser[List[A]] = (input: String) => {
-      val successfulParseResults = LazyList
-        .iterate(p.parse(input))(_.flatMap { case (_, rest) => p.parse(rest) })
-        .zipWithIndex
-        .takeWhile { case (res, idx) => res.isDefined && max.forall(_ > idx) }
-        .map(_._1.get)
-        .toList
-      Option.when(successfulParseResults.size >= min) {
-        val lastRemainder = successfulParseResults.lastOption.map(_._2).getOrElse(input)
-        successfulParseResults.map(_._1) -> lastRemainder
-      }
-    }
-
-    def parseChar(c: Char): Parser[Char] = (s: String) => s.headOption.filter(_ == c).map(_ -> s.tail)
-    def parseString(len: Int): Parser[String] = (s: String) =>
-      if (s.size >= len) Some(s.take(len) -> s.drop(len))
-      else None
-
-    val parseInt: Parser[Int] = (s: String) => Try(Integer.parseInt(s, 2)).toOption.map(i => i -> "")
-    val parseBigInt: Parser[BigInt] = (s: String) => Try(BigInt(s, 2)).toOption.map(i => i -> "")
-
-    def parseIntOfLen(len: Int): Parser[Int] = parseString(len).feedInto(parseInt)
-
-    val versionNumberParser: Parser[VersionNumber] = parseIntOfLen(3).map(VersionNumber.apply)
-    val typeIdParser: Parser[TypeId] = parseIntOfLen(3).map(TypeId.apply)
-
-    def literalPacketParser(versionNumber: VersionNumber): Parser[Packet.Literal] = for {
-      bytes <- multiple(0, None)(parseChar('1') *> parseString(4))
-      lastByte <- parseChar('0') *> parseString(4)
-      number <- Parser.succeed(bytes.mkString + lastByte).feedInto(parseBigInt)
-    } yield Packet.Literal(versionNumber, number)
-
-    def operatorPacketParser(version: VersionNumber, typeId: TypeId): Parser[Packet.Operator] = for {
-      lengthTypeId <- parseIntOfLen(1)
-      subpackets <- lengthTypeId match {
-        case 0 => for {
-          bitLen <- parseIntOfLen(15)
-          sps <- parseString(bitLen).feedInto(multiple(min = 1, max = None)(packetParser))
-        } yield sps
-        case 1 => for {
-          numSubpackets <- parseIntOfLen(11)
-          sps <- multiple(min = numSubpackets, max = Some(numSubpackets))(packetParser)
-        } yield sps
-      }
-    } yield Packet.Operator(version, typeId, subpackets)
-
-    val packetParser: Parser[Packet] = for {
-      version <- versionNumberParser
-      typeId <- typeIdParser
-      packet <-
-        if (typeId == TypeId.LiteralTypeId) literalPacketParser(version)
-        else operatorPacketParser(version, typeId)
-    } yield packet
-  }
+  val packetParser: Parser[Packet] = for {
+    version <- versionNumberParser
+    typeId <- typeIdParser
+    packet <-
+      if (typeId == TypeId.LiteralTypeId) literalPacketParser(version)
+      else operatorPacketParser(version, typeId)
+  } yield packet
 
   def hexToBinary(hexString: String): String = {
     val unpadded = BigInt(hexString, 16).toString(2)
     val modded = unpadded.size % 4
     val missing = if (modded == 0) 0 else 4 - modded
-    unpadded.prependedAll("0"*missing)
+    unpadded.prependedAll("0" * missing)
   }
 
   def versionSum(packet: Packet): Int = packet match {
@@ -135,7 +86,7 @@ object Day16 extends Day[Long, BigInt] {
 
   def part1(in: String) = Task.effect {
     val binaryString = hexToBinary(in)
-    Parser.packetParser.parse(binaryString) match {
+    packetParser.parse(binaryString) match {
       case Some((packet, _)) => versionSum(packet)
       case None => -1
     }
@@ -143,7 +94,7 @@ object Day16 extends Day[Long, BigInt] {
 
   def part2(in: String) = Task.effect {
     val binaryString = hexToBinary(in)
-    Parser.packetParser.parse(binaryString) match {
+    packetParser.parse(binaryString) match {
       case Some((packet, padding)) => compute(packet)
       case None => BigInt(-1)
     }
