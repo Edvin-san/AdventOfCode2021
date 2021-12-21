@@ -26,23 +26,22 @@ object Day21 extends Day[Long, BigInt] {
     losingScore*finalState.totalDiceRolls
   }
 
-  // p1 always starts
   case class AggregateResult(p1wins: BigInt, p2wins: BigInt) {
-    def |+|(other: AggregateResult): AggregateResult = AggregateResult(p1wins + other.p1wins, p2wins + p2wins)
+    def |+|(other: AggregateResult): AggregateResult = AggregateResult(p1wins + other.p1wins, p2wins + other.p2wins)
   }
   def doctorStrange(p1start: Int, p2start: Int, scoreThreshold: Int): AggregateResult = {
     var memo: Map[(PlayerState, PlayerState, Int, Int), AggregateResult] = Map()
+    // p1 always starts
     def dp(p1: PlayerState, p2: PlayerState, remDiceThrows: Int, currentDieSum: Int): AggregateResult = {
       val key = (p1, p2, remDiceThrows, currentDieSum)
       if (memo.contains(key)) memo(key)
       else {
           val res = if (remDiceThrows == 0) {
-            if (p1.score >= scoreThreshold) AggregateResult(1, 0)
-            else if (p2.score >= scoreThreshold) AggregateResult(0, 1)
+            val newAt = (p1.at + currentDieSum) % 10
+            val newScore = p1.score + newAt + 1
+            val newp1 = PlayerState(newAt, newScore)
+            if (newp1.score >= scoreThreshold) AggregateResult(1, 0)
             else {
-              val newAt = (p1.at + currentDieSum) % 10
-              val newScore = p1.score + newAt + 1
-              val newp1 = PlayerState(newAt, newScore)
               val reversed = dp(p2, newp1, 3, 0)
               AggregateResult(reversed.p2wins, reversed.p1wins)
             }
@@ -61,7 +60,6 @@ object Day21 extends Day[Long, BigInt] {
   def part2(in: String) = Task.effect {
     val Array(_1, _2) = parseInput(in)
     val res = doctorStrange(_1 - 1, _2 - 1, 21)
-    println(res)
     List(res.p1wins, res.p2wins).max
   }
 
@@ -69,6 +67,6 @@ object Day21 extends Day[Long, BigInt] {
     Test("example", InputString("""Player 1 starting position: 4
                                   |Player 2 starting position: 8""".stripMargin), p1answer = 739785, p2answer = 444356092776315L),
     Puzzle(InputString("""Player 1 starting position: 8
-                         |Player 2 starting position: 3""".stripMargin), p1answer = 412344)
+                         |Player 2 starting position: 3""".stripMargin), p1answer = 412344, p2answer = 214924284932572L)
   )
 }
