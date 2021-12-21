@@ -2,7 +2,7 @@ import DayCase.{Puzzle, Test}
 import Input.{InputString, ResourceInput}
 import zio._
 
-object Day21 extends Day[Long, Long] {
+object Day21 extends Day[Long, BigInt] {
   case class PlayerState(at: Int, score: Long)
   case class GameState(p1: PlayerState, p2: PlayerState, turn: Int, die: Int, totalDiceRolls: Int)
 
@@ -26,14 +26,49 @@ object Day21 extends Day[Long, Long] {
     losingScore*finalState.totalDiceRolls
   }
 
+  // p1 always starts
+  case class AggregateResult(p1wins: BigInt, p2wins: BigInt) {
+    def |+|(other: AggregateResult): AggregateResult = AggregateResult(p1wins + other.p1wins, p2wins + p2wins)
+  }
+  def doctorStrange(p1start: Int, p2start: Int, scoreThreshold: Int): AggregateResult = {
+    var memo: Map[(PlayerState, PlayerState, Int, Int), AggregateResult] = Map()
+    def dp(p1: PlayerState, p2: PlayerState, remDiceThrows: Int, currentDieSum: Int): AggregateResult = {
+      val key = (p1, p2, remDiceThrows, currentDieSum)
+      if (memo.contains(key)) memo(key)
+      else {
+          val res = if (remDiceThrows == 0) {
+            if (p1.score >= scoreThreshold) AggregateResult(1, 0)
+            else if (p2.score >= scoreThreshold) AggregateResult(0, 1)
+            else {
+              val newAt = (p1.at + currentDieSum) % 10
+              val newScore = p1.score + newAt + 1
+              val newp1 = PlayerState(newAt, newScore)
+              val reversed = dp(p2, newp1, 3, 0)
+              AggregateResult(reversed.p2wins, reversed.p1wins)
+            }
+          } else {
+            (1 to 3).map { die =>
+              dp(p1, p2, remDiceThrows - 1, currentDieSum + die)
+            }.reduce(_ |+| _)
+          }
+        memo = memo.updated(key, res)
+        res
+      }
+    }
+    dp(PlayerState(p1start, 0), PlayerState(p2start, 0), 3, 0)
+  }
+
   def part2(in: String) = Task.effect {
-    ???
+    val Array(_1, _2) = parseInput(in)
+    val res = doctorStrange(_1 - 1, _2 - 1, 21)
+    println(res)
+    List(res.p1wins, res.p2wins).max
   }
 
   val cases = List(
     Test("example", InputString("""Player 1 starting position: 4
-                                  |Player 2 starting position: 8""".stripMargin), p1answer = 739785),
+                                  |Player 2 starting position: 8""".stripMargin), p1answer = 739785, p2answer = 444356092776315L),
     Puzzle(InputString("""Player 1 starting position: 8
-                         |Player 2 starting position: 3""".stripMargin))
+                         |Player 2 starting position: 3""".stripMargin), p1answer = 412344)
   )
 }
