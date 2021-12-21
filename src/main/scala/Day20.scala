@@ -14,12 +14,14 @@ object Day20 extends Day[Long, Long] {
     Dir.NorthWest,
     Dir.North,
     Dir.NorthEast,
-    ).map(p + _)
+  ).map(p + _)
 
   case class Image(specific: Map[Pos, Int], default: Int) {
     def get(p: Pos): Int = specific.getOrElse(p, default)
+
     def prettyPrint: String = {
       def intToChar(i: Int): Char = if (i == 1) '#' else '.'
+
       val (ymin, ymax, xmin, xmax) =
         (specific.keys.map(_.y).min - 3,
           specific.keys.map(_.y).max + 3,
@@ -38,14 +40,16 @@ object Day20 extends Day[Long, Long] {
     def enhance(img: Image): Image = {
       val pointsToUpdate = img.specific.keySet.flatMap(neighborhood)
       val newSpecific = pointsToUpdate.toList.map(p => p -> alg(Integer.parseInt(neighborhood(p).map(img.get).mkString, 2))).toMap
-      val newDefault = alg(Integer.parseInt(img.default.toString*9, 2))
+      val newDefault = alg(Integer.parseInt(img.default.toString * 9, 2))
       Image(newSpecific, newDefault)
     }
+
     def imageSequence(initialImage: Image): LazyList[Image] = LazyList.iterate(initialImage)(enhance)
   }
 
   def parseInput(s: String): (Vector[Int], Image) = {
     def charToInt(c: Char): Int = if (c == '#') 1 else 0
+
     val Array(algS, imgS) = s.split("\n\n")
     val alg = algS.map(charToInt).toVector
     val img = for {
@@ -64,19 +68,20 @@ object Day20 extends Day[Long, Long] {
   def part2(in: String) = Task.effect {
     val (alg, img) = parseInput(in)
     val enhancer = ImageEnhancer(alg)
-    val eh = enhancer.imageSequence(img)(50)
-//    println(eh.prettyPrint)
+    val eh = enhancer.imageSequence(img)(200)
+    println(eh.prettyPrint)
     eh.specific.values.sum
   }
 
   val cases = List(
-    Test("example", InputString("""..#.#..#####.#.#.#.###.##.....###.##.#..###.####..#####..#....#..#..##..###..######.###...####..#..#####..##..#.#####...##.#.#..#.##..#.#......#.###.######.###.####...#.##.##..#..#..#####.....#.#....###..#.##......#.....#..#..#..##..#...##.######.####.####.#.#...#.......#..#.#.#...####.##.#......#..#...##.#.##..#...##.#.##..###.#......#.#.......#.#.#.####.###.##...#.....####.#..#..#.##.#....##..#.####....##...##..#...#......#.#.......#.......##..####..#...#.#.#...##..#.#..###..#####........#..####......#..#
-                                  |
-                                  |#..#.
-                                  |#....
-                                  |##..#
-                                  |..#..
-                                  |..###""".stripMargin), p1answer = 35, p2answer = 3351),
+    Test("example", InputString(
+      """..#.#..#####.#.#.#.###.##.....###.##.#..###.####..#####..#....#..#..##..###..######.###...####..#..#####..##..#.#####...##.#.#..#.##..#.#......#.###.######.###.####...#.##.##..#..#..#####.....#.#....###..#.##......#.....#..#..#..##..#...##.######.####.####.#.#...#.......#..#.#.#...####.##.#......#..#...##.#.##..#...##.#.##..###.#......#.#.......#.#.#.####.###.##...#.....####.#..#..#.##.#....##..#.####....##...##..#...#......#.#.......#.......##..####..#...#.#.#...##..#.#..###..#####........#..####......#..#
+        |
+        |#..#.
+        |#....
+        |##..#
+        |..#..
+        |..###""".stripMargin), p1answer = 35, p2answer = 3351),
     Puzzle(ResourceInput("day20puzzle.txt"), p1answer = 5301, p2answer = 19492)
   )
 }
