@@ -8,7 +8,8 @@ object Util {
   }
 
   implicit class LazyListOps[A](lzy: LazyList[A]) {
-    def getFirstRepeated: A = lzy.grouped(2).find(it => it.head == it.last).get.head
+    def getFirstRepeated: A = lzy.sliding(2).find(it => it.head == it.last).get.head
+    def getFirstRepeatedWithIndex: (A, Int) = lzy.zipWithIndex.sliding(2).find(it => it.head._1 == it.last._1).get.head
   }
 
   def lowerBound[V <% Ordered[V]](first: BigInt, last: BigInt, value: V, valueOf: BigInt => V): BigInt = {
