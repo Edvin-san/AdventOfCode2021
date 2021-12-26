@@ -1,18 +1,13 @@
 import scala.collection.mutable
 
 object GraphUtil {
-  trait Edgy[Edge, Vertex] {
-    def from(e: Edge): Vertex
-    def to(e: Edge): Vertex
-  }
-
   def shortestPath[Vertex, Edge, Cost: Numeric](
                                                  from: Vertex,
                                                  to: Vertex,
-                                                 neighborFn: Vertex => List[Edge],
+                                                 neighborFn: Vertex => Seq[Edge],
+                                                 edgeDestinationFn: Edge => Vertex,
                                                  costFn: Edge => Cost)(
-                                                 implicit N: Numeric[Cost],
-                                                 E: Edgy[Edge, Vertex]
+                                                 implicit N: Numeric[Cost]
                                                ): Option[(List[Vertex], Cost)] = {
     if (from == to) return Some(Nil, N.zero)
     var previousVertex: Map[Vertex, Vertex] = Map()
@@ -21,7 +16,7 @@ object GraphUtil {
     val queue: mutable.PriorityQueue[PathEnding] =
       scala.collection.mutable.PriorityQueue[PathEnding](
         neighborFn(from)
-          .map(e => PathEnding(E.from(e), E.to(e), costFn(e))): _*
+          .map(e => PathEnding(from, edgeDestinationFn(e), costFn(e))): _*
       )
 
     var found = false
@@ -35,24 +30,24 @@ object GraphUtil {
           found = true
           distance = pathEnd.pathCost
         } else {
-          queue.addAll(neighborFn(pathEnd.end).map(e => PathEnding(E.from(e), E.to(e), N.plus(costFn(e), pathEnd.pathCost))))
+          queue.addAll(neighborFn(pathEnd.end).map(e => PathEnding(pathEnd.end, edgeDestinationFn(e), N.plus(costFn(e), pathEnd.pathCost))))
         }
       }
     }
 
     Option.when(found) {
       // Extract path
-      (LazyList.iterate(to)(previousVertex).takeWhile(_ != from).reverse.appended(from).toList, distance)
+      (LazyList.iterate(to)(previousVertex).takeWhile(_ != from).reverse.prepended(from).toList, distance)
     }
   }
 
   def shortestPathToAll[Vertex, Edge, Cost: Numeric](
-                                                 from: Vertex,
-                                                 neighborFn: Vertex => List[Edge],
-                                                 costFn: Edge => Cost)(
-                                                 implicit N: Numeric[Cost],
-                                                 E: Edgy[Edge, Vertex]
-                                               ): (Map[Vertex, Cost], Map[Vertex, Vertex]) = {
+                                                      from: Vertex,
+                                                      neighborFn: Vertex => Seq[Edge],
+                                                      edgeDestinationFn: Edge => Vertex,
+                                                      costFn: Edge => Cost)(
+                                                      implicit N: Numeric[Cost]
+                                                    ): (Map[Vertex, Cost], Map[Vertex, Vertex]) = {
     var previousVertex: Map[Vertex, Vertex] = Map()
     var shortestCostTo: Map[Vertex, Cost] = Map(from -> N.zero)
     case class PathEnding(prev: Vertex, end: Vertex, pathCost: Cost)
@@ -60,7 +55,7 @@ object GraphUtil {
     val queue: mutable.PriorityQueue[PathEnding] =
       scala.collection.mutable.PriorityQueue[PathEnding](
         neighborFn(from)
-          .map(e => PathEnding(E.from(e), E.to(e), costFn(e))): _*
+          .map(e => PathEnding(from, edgeDestinationFn(e), costFn(e))): _*
       )
 
     while (queue.nonEmpty) {
@@ -69,7 +64,7 @@ object GraphUtil {
         // Found shortest path to this vertex
         shortestCostTo = shortestCostTo + (pathEnd.end -> pathEnd.pathCost)
         previousVertex = previousVertex + (pathEnd.end -> pathEnd.prev)
-        queue.addAll(neighborFn(pathEnd.end).map(e => PathEnding(E.from(e), E.to(e), N.plus(costFn(e), pathEnd.pathCost))))
+        queue.addAll(neighborFn(pathEnd.end).map(e => PathEnding(pathEnd.end, edgeDestinationFn(e), N.plus(costFn(e), pathEnd.pathCost))))
       }
     }
 

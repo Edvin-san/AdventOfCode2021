@@ -1,5 +1,4 @@
 import DayCase.{Puzzle, Test}
-import GraphUtil.Edgy
 import Input.{InputString, ResourceInput}
 import Util.Vector.Dir._
 import Util.Vector.Pos
@@ -40,13 +39,7 @@ object Day15 extends Day[Long, Long] {
 
   def shortestPath(graph: Graph, from: Vertex, to: Vertex): Long = {
     val neighbors: Map[Vertex, List[Edge]] = graph.edges.toList.groupBy(_.from)
-
-    implicit val e: Edgy[Edge, Vertex] = new Edgy[Edge, Vertex] {
-      override def from(e: Edge): Vertex = e.from
-
-      override def to(e: Edge): Vertex = e.to
-    }
-    GraphUtil.shortestPath[Vertex, Edge, Int](from, to, neighbors.apply, _.cost).get._2
+    GraphUtil.shortestPath[Vertex, Edge, Int](from, to, neighbors.apply, _.to, _.cost).get._2
   }
 
   def part1(in: String) = Task.effect {
